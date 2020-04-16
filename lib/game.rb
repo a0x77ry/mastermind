@@ -4,37 +4,9 @@
 class Game
   require_relative 'board'
 
-  attr_accessor :player, :ai_player, :code
+  attr_accessor :codebreaker, :codemaker, :code
 
-  def initialize(player, ai_player)
-    self.player = player
-    self.ai_player = ai_player
-    @board = Board.new
-    self.code = random_code
-  end
-
-  def guess_input
-    guess = ''
-    until valid_code?(guess)
-      puts "\nGuess the secret code with a four letter string. "\
-           "Example : gbrw \n"
-      guess = gets.chomp.downcase
-    end
-
-    guess
-  end
-
-  def next_round
-    puts "\nAvailabe colors are:\n\n"
-    Board.colors.each { |k, v| puts "Color: #{v}, code letter: #{k}\n" }
-    guess = guess_input
-
-    exit if guess == 'exit'
-
-    evaluate_guess(guess, code)
-  end
-
-  def valid_code?(code)
+  def self.valid_code?(code)
     return true if code == 'exit'
     return false unless code.split('').length == 4
 
@@ -44,7 +16,16 @@ class Game
     true
   end
 
-  def find_matching_colors(guess, code)
+  def self.evaluate_guess(guess, code)
+    matching_positions = 0
+    4.times { |i| matching_positions += 1 if guess[i] == code[i] }
+    matching_colors = find_matching_colors(guess, code)
+
+    matching_colors_number = matching_colors.uniq.length
+    { colors: matching_colors_number, positions: matching_positions }
+  end
+
+  def self.find_matching_colors(guess, code)
     matching_colors = []
     guess_letters = guess.split('')
     code_letters = code.split('')
@@ -58,23 +39,17 @@ class Game
     matching_colors
   end
 
-  def evaluate_guess(guess, code)
-    matching_positions = 0
-    4.times { |i| matching_positions += 1 if guess[i] == code[i] }
-    matching_colors = find_matching_colors(guess, code)
-
-    matching_colors_number = matching_colors.uniq.length
-    { colors: matching_colors_number, positions: matching_positions }
+  def initialize(codebreaker, codemaker)
+    self.codebreaker = codebreaker
+    self.codemaker = codemaker
+    @board = Board.new
+    self.code = codemaker.code
   end
 
-  private
-
-  def random_code
-    rand_code = ''
-    until valid_code?(rand_code)
-      rand_col = Board.colors.keys.sample.to_s
-      rand_code += rand_col unless rand_code.include?(rand_col)
-    end
-    rand_code
+  def next_round
+    guess = codebreaker.guess
+    exit if guess == 'exit'
+    puts "\nTrying guess: #{guess}."
+    codebreaker.last_evaluation = Game.evaluate_guess(guess, code)
   end
 end
